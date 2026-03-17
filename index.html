@@ -95,14 +95,14 @@
     <div class="card">
       <div class="field-group">
         <span class="field-label">車両を選択</span>
-        <select id="car-select" onchange="onCarOrDateChange()">
-          <option value="">-- 車両を選んでください --</option>
-          <option value="白ハイエース">白ハイエース</option>
-          <option value="黒ハイエース">黒ハイエース</option>
-          <option value="ガンメタ">ガンメタ</option>
-          <option value="はっこく">はっこく</option>
-          <option value="大原号（軽）">大原号（軽）</option>
-        </select>
+        <div class="chips" style="flex-wrap:wrap;gap:8px">
+          <button class="time-chip" onclick="selectCar(this,'白ハイエース')">白ハイエース</button>
+          <button class="time-chip" onclick="selectCar(this,'黒ハイエース')">黒ハイエース</button>
+          <button class="time-chip" onclick="selectCar(this,'ガンメタ')">ガンメタ</button>
+          <button class="time-chip" onclick="selectCar(this,'はっこく')">はっこく</button>
+          <button class="time-chip" onclick="selectCar(this,'大原号（軽）')">大原号（軽）</button>
+        </div>
+        <input type="hidden" id="car-select">
         <div class="error" id="err-car">車両を選択してください</div>
       </div>
       <div class="field-group">
@@ -194,7 +194,7 @@
 
 <script>
 const SUPABASE_URL = 'https://buucsvwpstnvnlvxvgah.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1dWNzdndwc3Rudm5sdnh2Z2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MjI0OTgsImV4cCI6MjA4OTI5ODQ5OH0.1A_na8Jdpv53v49r8-h3HXaDULQcoRB3UhYc8kXp4eI';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1dWNzdndwc3Rudm5sdnh2Z2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MTc4MjQsImV4cCI6MjA4OTI5MzgyNH0.1A_na8Jdpv53v49r8-h3HXaDULQcoRB3UhYc8kXp4eI';
 
 const TIME_SLOTS = ['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
 const DAYS = ['日','月','火','水','木','金','土'];
@@ -221,6 +221,13 @@ async function sbFetch(path, options = {}) {
 
 // Set default date to today
 document.getElementById('date-input').valueAsDate = new Date();
+
+function selectCar(el, car) {
+  document.querySelectorAll('.chips .time-chip').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('car-select').value = car;
+  onCarOrDateChange();
+}
 
 async function onCarOrDateChange() {
   const car = document.getElementById('car-select').value;
