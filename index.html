@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CITABRIA 車両予約</title>
+<style>
+  :root {
+    --navy: #1B3A5C;
+    --gold: #C8973A;
+    --navy-light: rgba(27,58,92,0.08);
+    --bg: #F7F5F2;
+    --white: #ffffff;
+    --text: #1a1a1a;
+    --muted: #888;
+    --border: #e0ddd8;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: var(--navy); color: white; padding: 18px 20px 14px; display: flex; align-items: baseline; gap: 12px; }
+  .header h1 { font-size: 17px; font-weight: 500; letter-spacing: 0.05em; }
+  .header span { font-size: 11px; opacity: 0.6; }
+  .tabs { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 12px; overflow-x: auto; }
+  .tab-btn { padding: 13px 14px; font-size: 13px; font-family: inherit; border: none; background: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 500; }
+  .content { padding: 14px; max-width: 600px; margin: 0 auto; }
+  .card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; margin-bottom: 12px; }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; display: block; }
+  input[type="text"], select { width: 100%; padding: 10px 13px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; transition: border-color 0.2s; background: var(--bg); color: var(--text); appearance: none; }
+  input[type="text"]:focus, select:focus { border-color: var(--navy); background: white; }
+  input[type="date"] { width: 100%; padding: 10px 13px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; background: var(--bg); color: var(--text); }
+  input[type="date"]:focus { border-color: var(--navy); background: white; }
+  .btn { width: 100%; padding: 13px; font-size: 14px; font-family: inherit; font-weight: 500; background: var(--navy); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+  .btn:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-danger { background: var(--danger); }
+  .btn-sm { width: auto; padding: 6px 14px; font-size: 12px; }
+  .error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
+  .field-group { margin-bottom: 14px; }
+  .field-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .time-chip { padding: 10px 4px; font-size: 13px; font-family: inherit; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; color: var(--muted); background: var(--bg); text-align: center; }
+  .time-chip:hover { border-color: var(--navy); color: var(--navy); }
+  .time-chip.sel { background: var(--navy); color: white; border-color: var(--navy); }
+  .time-chip.booked { background: rgba(192,57,43,0.08); border-color: var(--danger); color: var(--danger); cursor: not-allowed; font-size: 11px; }
+
+  /* Calendar view */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-nav-btn { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 16px; }
+  .cal-title { font-size: 15px; font-weight: 500; color: var(--navy); }
+  .week-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .week-header { background: var(--navy); color: white; font-size: 11px; text-align: center; padding: 6px 2px; }
+  .week-header.time-col { background: var(--navy); }
+  .week-cell { background: var(--white); min-height: 44px; padding: 2px; position: relative; }
+  .week-cell.time-label { background: var(--bg); font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .booking-block { background: var(--navy); color: white; border-radius: 4px; font-size: 10px; padding: 2px 4px; margin: 1px; line-height: 1.3; cursor: pointer; }
+  .booking-block.mine { background: var(--gold); }
+
+  /* Booking list */
+  .booking-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 8px; }
+  .booking-item:last-child { border-bottom: none; }
+  .booking-info { flex: 1; }
+  .booking-car { font-size: 11px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .booking-detail { font-size: 13px; font-weight: 500; }
+  .booking-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .cancel-btn { padding: 5px 10px; font-size: 11px; font-family: inherit; border: 1px solid var(--danger); border-radius: 6px; background: white; color: var(--danger); cursor: pointer; white-space: nowrap; }
+  .loading { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; }
+  .empty-state { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .success-msg { background: rgba(27,58,92,0.07); border-radius: var(--radius-sm); padding: 14px; text-align: center; font-size: 14px; color: var(--navy); font-weight: 500; }
+  .car-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; background: var(--navy-light); color: var(--navy); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>CITABRIA 車両予約</h1>
+  <span>社用車の予約管理</span>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('reserve',this)">予約する</button>
+  <button class="tab-btn" onclick="showTab('calendar',this)">カレンダー</button>
+  <button class="tab-btn" onclick="showTab('list',this)">予約一覧</button>
+</div>
+
+<!-- 予約する -->
+<div id="tab-reserve" class="tab-content active">
+<div class="content">
+  <div id="reserve-form">
+    <div class="card">
+      <div class="field-group">
+        <span class="field-label">車両を選択</span>
+        <select id="car-select" onchange="onCarOrDateChange()">
+          <option value="">-- 車両を選んでください --</option>
+          <option value="白ハイエース">白ハイエース</option>
+          <option value="黒ハイエース">黒ハイエース</option>
+          <option value="ガンメタ">ガンメタ</option>
+          <option value="はっこく">はっこく</option>
+          <option value="大原号（軽）">大原号（軽）</option>
+        </select>
+        <div class="error" id="err-car">車両を選択してください</div>
+      </div>
+      <div class="field-group">
+        <span class="field-label">日付</span>
+        <input type="date" id="date-input" onchange="onCarOrDateChange()">
+        <div class="error" id="err-date">日付を選択してください</div>
+      </div>
+    </div>
+
+    <div class="card" id="time-card" style="display:none">
+      <span class="label">時間帯を選択（複数可）</span>
+      <div class="time-grid" id="time-grid"></div>
+      <div class="error" id="err-time">時間帯を選択してください</div>
+    </div>
+
+    <div class="card" id="user-card" style="display:none">
+      <div class="field-group">
+        <span class="field-label">予約者名</span>
+        <input type="text" id="user-name" placeholder="例：中里">
+        <div class="error" id="err-name">お名前を入力してください</div>
+      </div>
+      <div class="field-group">
+        <span class="field-label">目的地・用途</span>
+        <input type="text" id="destination" placeholder="例：厚木 配達">
+        <div class="error" id="err-dest">目的地を入力してください</div>
+      </div>
+      <button class="btn" id="submit-btn" onclick="submitBooking()">予約を確定する</button>
+    </div>
+  </div>
+
+  <div id="reserve-done" style="display:none">
+    <div class="card">
+      <div class="success-msg">予約が完了しました！</div>
+      <div id="done-detail" style="margin-top:14px;font-size:13px;color:var(--muted);line-height:1.8"></div>
+      <button class="btn" style="margin-top:14px" onclick="resetForm()">続けて予約する</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- カレンダー -->
+<div id="tab-calendar" class="tab-content">
+<div class="content">
+  <div class="card" style="padding:12px">
+    <div class="cal-header">
+      <button class="cal-nav-btn" onclick="changeWeek(-1)">‹</button>
+      <span class="cal-title" id="week-title"></span>
+      <button class="cal-nav-btn" onclick="changeWeek(1)">›</button>
+    </div>
+    <div class="field-group" style="margin-bottom:12px">
+      <select id="cal-car-filter" onchange="loadCalendar()">
+        <option value="">全車両</option>
+        <option value="白ハイエース">白ハイエース</option>
+        <option value="黒ハイエース">黒ハイエース</option>
+        <option value="ガンメタ">ガンメタ</option>
+        <option value="はっこく">はっこく</option>
+        <option value="大原号（軽）">大原号（軽）</option>
+      </select>
+    </div>
+    <div id="cal-loading" class="loading">読み込み中…</div>
+    <div id="week-grid-wrap" style="overflow-x:auto;display:none">
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 予約一覧 -->
+<div id="tab-list" class="tab-content">
+<div class="content">
+  <div class="card">
+    <div class="field-group" style="margin-bottom:0">
+      <select id="list-car-filter" onchange="loadList()">
+        <option value="">全車両</option>
+        <option value="白ハイエース">白ハイエース</option>
+        <option value="黒ハイエース">黒ハイエース</option>
+        <option value="ガンメタ">ガンメタ</option>
+        <option value="はっこく">はっこく</option>
+        <option value="大原号（軽）">大原号（軽）</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div id="list-loading" class="loading">読み込み中…</div>
+    <div id="booking-list"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://buucsvwpstnvnlvxvgah.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1dWNzdndwc3Rudm5sdnh2Z2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MjI0OTgsImV4cCI6MjA4OTI5ODQ5OH0.1A_na8Jdpv53v49r8-h3HXaDULQcoRB3UhYc8kXp4eI';
+
+const TIME_SLOTS = ['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+const DAYS = ['日','月','火','水','木','金','土'];
+
+let selectedTimes = [];
+let bookedTimes = [];
+let weekOffset = 0;
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(err); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// Set default date to today
+document.getElementById('date-input').valueAsDate = new Date();
+
+async function onCarOrDateChange() {
+  const car = document.getElementById('car-select').value;
+  const date = document.getElementById('date-input').value;
+  if (!car || !date) return;
+  selectedTimes = [];
+  bookedTimes = [];
+  document.getElementById('time-card').style.display = 'block';
+  document.getElementById('user-card').style.display = 'none';
+  const grid = document.getElementById('time-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;padding:8px">読み込み中…</div>';
+  try {
+    const data = await sbFetch(`bookings?car=eq.${encodeURIComponent(car)}&date=eq.${date}&select=time_slot`);
+    bookedTimes = data.map(d => d.time_slot);
+    renderTimeGrid();
+    document.getElementById('user-card').style.display = 'block';
+  } catch(e) {
+    grid.innerHTML = '<div style="color:var(--danger);font-size:13px">読み込みエラー</div>';
+  }
+}
+
+function renderTimeGrid() {
+  const grid = document.getElementById('time-grid');
+  grid.innerHTML = '';
+  TIME_SLOTS.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'time-chip';
+    if (bookedTimes.includes(t)) {
+      btn.className += ' booked';
+      btn.textContent = t + '\n×';
+      btn.disabled = true;
+    } else if (selectedTimes.includes(t)) {
+      btn.className += ' sel';
+      btn.textContent = t;
+      btn.onclick = () => toggleTime(t);
+    } else {
+      btn.textContent = t;
+      btn.onclick = () => toggleTime(t);
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function toggleTime(t) {
+  const i = selectedTimes.indexOf(t);
+  if (i > -1) selectedTimes.splice(i, 1); else selectedTimes.push(t);
+  renderTimeGrid();
+}
+
+async function submitBooking() {
+  let ok = true;
+  if (!document.getElementById('car-select').value) { document.getElementById('err-car').style.display = 'block'; ok = false; } else document.getElementById('err-car').style.display = 'none';
+  if (!document.getElementById('date-input').value) { document.getElementById('err-date').style.display = 'block'; ok = false; } else document.getElementById('err-date').style.display = 'none';
+  if (selectedTimes.length === 0) { document.getElementById('err-time').style.display = 'block'; ok = false; } else document.getElementById('err-time').style.display = 'none';
+  if (!document.getElementById('user-name').value.trim()) { document.getElementById('err-name').style.display = 'block'; ok = false; } else document.getElementById('err-name').style.display = 'none';
+  if (!document.getElementById('destination').value.trim()) { document.getElementById('err-dest').style.display = 'block'; ok = false; } else document.getElementById('err-dest').style.display = 'none';
+  if (!ok) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '予約中…';
+
+  const car = document.getElementById('car-select').value;
+  const date = document.getElementById('date-input').value;
+  const name = document.getElementById('user-name').value.trim();
+  const dest = document.getElementById('destination').value.trim();
+
+  try {
+    const rows = selectedTimes.map(t => ({ car, date, time_slot: t, user_name: name, destination: dest }));
+    await sbFetch('bookings', { method: 'POST', body: JSON.stringify(rows) });
+    const p = date.split('-');
+    const dt = new Date(+p[0],+p[1]-1,+p[2]);
+    document.getElementById('done-detail').innerHTML = `車両：${car}<br>日付：${p[1]}月${p[2]}日（${DAYS[dt.getDay()]}）<br>時間：${selectedTimes.sort().join('、')}<br>予約者：${name}<br>目的地：${dest}`;
+    document.getElementById('reserve-form').style.display = 'none';
+    document.getElementById('reserve-done').style.display = 'block';
+  } catch(e) {
+    alert('予約エラー: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '予約を確定する';
+}
+
+function resetForm() {
+  selectedTimes = [];
+  bookedTimes = [];
+  document.getElementById('car-select').value = '';
+  document.getElementById('date-input').valueAsDate = new Date();
+  document.getElementById('user-name').value = '';
+  document.getElementById('destination').value = '';
+  document.getElementById('time-card').style.display = 'none';
+  document.getElementById('user-card').style.display = 'none';
+  document.getElementById('reserve-form').style.display = 'block';
+  document.getElementById('reserve-done').style.display = 'none';
+}
+
+// CALENDAR
+function getWeekDates() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset * 7);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function changeWeek(dir) { weekOffset += dir; loadCalendar(); }
+
+async function loadCalendar() {
+  const dates = getWeekDates();
+  const start = dates[0].toISOString().split('T')[0];
+  const end = dates[6].toISOString().split('T')[0];
+  const car = document.getElementById('cal-car-filter').value;
+  const title = `${dates[0].getMonth()+1}/${dates[0].getDate()} 〜 ${dates[6].getMonth()+1}/${dates[6].getDate()}`;
+  document.getElementById('week-title').textContent = title;
+  document.getElementById('cal-loading').style.display = 'block';
+  document.getElementById('week-grid-wrap').style.display = 'none';
+
+  try {
+    let path = `bookings?date=gte.${start}&date=lte.${end}&select=*&order=date,time_slot`;
+    if (car) path += `&car=eq.${encodeURIComponent(car)}`;
+    const data = await sbFetch(path);
+    renderWeekGrid(dates, data);
+    document.getElementById('cal-loading').style.display = 'none';
+    document.getElementById('week-grid-wrap').style.display = 'block';
+  } catch(e) {
+    document.getElementById('cal-loading').textContent = '読み込みエラー';
+  }
+}
+
+function renderWeekGrid(dates, bookings) {
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+  // Headers
+  const th0 = document.createElement('div');
+  th0.className = 'week-header time-col';
+  th0.textContent = '';
+  grid.appendChild(th0);
+  dates.forEach(d => {
+    const th = document.createElement('div');
+    th.className = 'week-header';
+    th.textContent = `${DAYS[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`;
+    if (d.getDay() === 0) th.style.background = '#c0392b';
+    if (d.getDay() === 6) th.style.background = '#2980b9';
+    grid.appendChild(th);
+  });
+  // Time rows
+  TIME_SLOTS.forEach(t => {
+    const tl = document.createElement('div');
+    tl.className = 'week-cell time-label';
+    tl.textContent = t;
+    grid.appendChild(tl);
+    dates.forEach(d => {
+      const ds = d.toISOString().split('T')[0];
+      const cell = document.createElement('div');
+      cell.className = 'week-cell';
+      const slotBookings = bookings.filter(b => b.date === ds && b.time_slot === t);
+      slotBookings.forEach(b => {
+        const block = document.createElement('div');
+        block.className = 'booking-block';
+        block.textContent = `${b.car}\n${b.user_name}`;
+        block.style.whiteSpace = 'pre';
+        block.title = `${b.car} / ${b.user_name} / ${b.destination}`;
+        cell.appendChild(block);
+      });
+      grid.appendChild(cell);
+    });
+  });
+}
+
+// LIST
+async function loadList() {
+  const car = document.getElementById('list-car-filter').value;
+  document.getElementById('list-loading').style.display = 'block';
+  document.getElementById('booking-list').innerHTML = '';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    let path = `bookings?date=gte.${today}&select=*&order=date,time_slot`;
+    if (car) path += `&car=eq.${encodeURIComponent(car)}`;
+    const data = await sbFetch(path);
+    document.getElementById('list-loading').style.display = 'none';
+    if (!data || data.length === 0) {
+      document.getElementById('booking-list').innerHTML = '<div class="empty-state">予約はありません</div>';
+      return;
+    }
+    const list = document.getElementById('booking-list');
+    let currentDate = '';
+    data.forEach(b => {
+      if (b.date !== currentDate) {
+        currentDate = b.date;
+        const p = b.date.split('-');
+        const dt = new Date(+p[0],+p[1]-1,+p[2]);
+        const dh = document.createElement('div');
+        dh.style.cssText = 'font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:10px 0 4px;border-bottom:1px solid var(--border)';
+        dh.textContent = `${p[1]}月${p[2]}日（${DAYS[dt.getDay()]}）`;
+        list.appendChild(dh);
+      }
+      const item = document.createElement('div');
+      item.className = 'booking-item';
+      item.innerHTML = `<div class="booking-info"><div class="booking-car">${b.car}</div><div class="booking-detail">${b.time_slot} — ${b.user_name}</div><div class="booking-meta">${b.destination}</div></div><button class="cancel-btn" onclick="cancelBooking('${b.id}', this)">キャンセル</button>`;
+      list.appendChild(item);
+    });
+  } catch(e) {
+    document.getElementById('list-loading').textContent = '読み込みエラー';
+  }
+}
+
+async function cancelBooking(id, btn) {
+  if (!confirm('この予約をキャンセルしますか？')) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await sbFetch(`bookings?id=eq.${id}`, { method: 'DELETE' });
+    btn.closest('.booking-item').remove();
+    loadCalendar();
+  } catch(e) { alert('エラー: ' + e.message); btn.disabled = false; btn.textContent = 'キャンセル'; }
+}
+
+function showTab(tab, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'calendar') loadCalendar();
+  if (tab === 'list') loadList();
+}
+</script>
+</body>
+</html>
